@@ -1,7 +1,14 @@
-const fs = require("fs");
-const axios = require("axios");
-const path = require("path");
-const tar = require("tar");
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import axios from 'axios';
+import tar from 'tar';
+import pLimit from 'p-limit';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 
 async function fetchPackageMetadata(packageName) {
   const { data } = await axios.get(
@@ -51,7 +58,7 @@ async function installFromToyPackageJsonSingle() {
   }
 }
 
-// Concurrent
+// Dynamic rate limit for concurrency
 async function installFromToyPackageJson() {
   const toyPackagePath = path.join(__dirname, "toy-package.json");
 
@@ -62,22 +69,32 @@ async function installFromToyPackageJson() {
 
   const toyPackageJson = JSON.parse(fs.readFileSync(toyPackagePath, "utf8"));
 
+  // Set a dynamic concurrency limit based on the number of packages to install
+  const totalPackages = Object.keys(toyPackageJson.dependencies).length + Object.keys(toyPackageJson.devDependencies).length;
+  const concurrencyLimit = Math.min(Math.ceil(totalPackages / 2), 8); // Limit between 1 and 8
+  const limit = pLimit(concurrencyLimit);
+
   const installDependenciesPromises = Object.entries(toyPackageJson.dependencies).map(
-    async ([packageName, version]) => {
-      await installPackage(packageName, version);
-      console.log(`Installed ${packageName}@${version}`);
+    ([packageName, version]) => {
+      return limit(async () => {
+        await installPackage(packageName, version);
+        console.log(`Installed ${packageName}@${version}`);
+      });
     }
   );
 
   const installDevDependenciesPromises = Object.entries(toyPackageJson.devDependencies).map(
-    async ([packageName, version]) => {
-      await installPackage(packageName, version, true);
-      console.log(`Installed ${packageName}@${version} as devDependency`);
+    ([packageName, version]) => {
+      return limit(async () => {
+        await installPackage(packageName, version, true);
+        console.log(`Installed ${packageName}@${version} as devDependency`);
+      });
     }
   );
 
   await Promise.all([...installDependenciesPromises, ...installDevDependenciesPromises]);
 }
+
 
 
 
