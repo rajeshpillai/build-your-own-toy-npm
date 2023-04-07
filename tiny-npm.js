@@ -141,6 +141,33 @@ function removeFromToyPackageJson(packageName) {
   fs.writeFileSync(toyPackagePath, JSON.stringify(toyPackageJson, null, 2));
 }
 
+function initToyPackageJson() {
+  const toyPackagePath = path.join(__dirname, "toy-package.json");
+
+  if (fs.existsSync(toyPackagePath)) {
+    console.log("toy-package.json already exists.");
+    return;
+  }
+
+  const defaultToyPackageJson = {
+    name: "toy-project",
+    version: "1.0.0",
+    description: "",
+    main: "index.js",
+    scripts: {
+      test: "echo \"Error: no test specified\" && exit 1",
+    },
+    keywords: [],
+    author: "",
+    license: "ISC",
+    dependencies: {},
+    devDependencies: {},
+  };
+
+  fs.writeFileSync(toyPackagePath, JSON.stringify(defaultToyPackageJson, null, 2));
+  console.log("Created toy-package.json with default values.");
+}
+
 
 async function main() {
   const [action, packageName, ...restArgs] = process.argv.slice(2);
@@ -165,6 +192,9 @@ async function main() {
   isDevDependency = saveOption === "--save-dev";
 
   switch (action) {
+    case "init":
+      initToyPackageJson();
+      break;
     case "install":
       await installPackage(packageName, version, isDevDependency);
       console.log(`Installed ${packageName}@${version || "latest"}`);

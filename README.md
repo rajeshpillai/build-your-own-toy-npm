@@ -14,3 +14,9 @@ node tiny-npm.js <install/uninstall> <package-name> [version]  [--save-dev]
 ```
 node tiny-npm.js
 ```
+
+## Init a new toy-package.json
+```
+node tiny-npm.js init
+
+```
