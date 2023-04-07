@@ -97,8 +97,14 @@ async function installFromToyPackageJson() {
 }
 
 
+async function getPackageData(packageName, version) {
+  const packageUrl = `https://registry.npmjs.org/${packageName}/${version || ""}`;
+  const response = await axios.get(packageUrl);
 
+  return response.data;
+}
 
+// Install package
 async function installPackage(packageName, version, isDevDependency = false) {
   const packagePath = path.join(__dirname, "toy_node_modules", packageName);
   fs.mkdirSync(packagePath, { recursive: true });
@@ -119,15 +125,41 @@ async function installPackage(packageName, version, isDevDependency = false) {
         file: path.join(packagePath, `${packageName}-${version}.tgz`),
         cwd: packagePath,
         strip: 1,
-      }).then(() => {
+      }).then(async () => {
         // Remove the tarball after extraction
         fs.unlinkSync(path.join(packagePath, `${packageName}-${version}.tgz`));
+
         // Update toy-package.json
         updateToyPackageJson(packageName, version, isDevDependency);
+
+        // Retrieve packageData for the installed version
+        const packageData = await getPackageData(packageName, version);
+
+        // Update toy-package-lock.json
+        const installedPackageInfo = {
+          version: packageData.version,
+          resolved: packageData.dist.tarball,
+          integrity: packageData.dist.shasum,
+        };
+        updateToyPackageLockJson(packageName, installedPackageInfo);
         resolve();
       });
     });
   });
+}
+
+
+// Update lock file with version informations
+function updateToyPackageLockJson(packageName, packageInfo) {
+  const lockfilePath = path.join(__dirname, "toy-package-lock.json");
+  let lockfileData = {};
+
+  if (fs.existsSync(lockfilePath)) {
+    lockfileData = JSON.parse(fs.readFileSync(lockfilePath, "utf8"));
+  }
+
+  lockfileData[packageName] = packageInfo;
+  fs.writeFileSync(lockfilePath, JSON.stringify(lockfileData, null, 2));
 }
 
 
@@ -144,7 +176,24 @@ function uninstallPackage(packageName) {
   // Remove package from toy-package.json
   removeFromToyPackageJson(packageName);
   console.log(`Uninstalled ${packageName}`);
+
+  removePackageFromToyPackageLockJson(packageName);
 }
+
+// Remove package fron lock file
+function removePackageFromToyPackageLockJson(packageName) {
+  const lockfilePath = path.join(__dirname, "toy-package-lock.json");
+
+  if (fs.existsSync(lockfilePath)) {
+    const lockfileData = JSON.parse(fs.readFileSync(lockfilePath, "utf8"));
+
+    if (lockfileData[packageName]) {
+      delete lockfileData[packageName];
+      fs.writeFileSync(lockfilePath, JSON.stringify(lockfileData, null, 2));
+    }
+  }
+}
+
 
 
 // Update toy-package.json
