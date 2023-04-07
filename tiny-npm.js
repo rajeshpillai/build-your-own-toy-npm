@@ -62,12 +62,20 @@ async function installPackage(packageName, version, isDevDependency = false) {
 }
 
 
-
-async function uninstallPackage(packageName) {
+function uninstallPackage(packageName) {
   const packagePath = path.join(__dirname, "toy_node_modules", packageName);
-  fs.rmSync(packagePath, { recursive: true, force: true });
-}
 
+  if (!fs.existsSync(packagePath)) {
+    console.log(`Package ${packageName} not found.`);
+    return;
+  }
+
+  fs.rmSync(packagePath, { recursive: true, force: true });
+  
+  // Remove package from toy-package.json
+  removeFromToyPackageJson(packageName);
+  console.log(`Uninstalled ${packageName}`);
+}
 
 
 // Update toy-package.json
@@ -96,6 +104,22 @@ function updateToyPackageJson(packageName, version, isDevDependency = false) {
   fs.writeFileSync(toyPackagePath, JSON.stringify(toyPackageJson, null, 2));
 }
 
+function removeFromToyPackageJson(packageName) {
+  const toyPackagePath = path.join(__dirname, "toy-package.json");
+
+  if (!fs.existsSync(toyPackagePath)) {
+    return;
+  }
+
+  const toyPackageJson = JSON.parse(fs.readFileSync(toyPackagePath, "utf8"));
+
+  delete toyPackageJson.dependencies[packageName];
+  delete toyPackageJson.devDependencies[packageName];
+
+  fs.writeFileSync(toyPackagePath, JSON.stringify(toyPackageJson, null, 2));
+}
+
+
 async function main() {
   const [action, packageName, ...restArgs] = process.argv.slice(2);
 
@@ -120,7 +144,6 @@ async function main() {
       break;
       case "uninstall":
         uninstallPackage(packageName);
-        console.log(`Uninstalled ${packageName}`);
         break;
       default:
         console.error("Invalid action. Use 'install' or 'uninstall'.");
