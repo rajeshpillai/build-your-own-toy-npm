@@ -29,6 +29,28 @@ async function downloadPackage(packageName, version) {
   return data;
 }
 
+// Install from toy-package.json
+async function installFromToyPackageJson() {
+  const toyPackagePath = path.join(__dirname, "toy-package.json");
+
+  if (!fs.existsSync(toyPackagePath)) {
+    console.log("toy-package.json not found.");
+    return;
+  }
+
+  const toyPackageJson = JSON.parse(fs.readFileSync(toyPackagePath, "utf8"));
+
+  for (const [packageName, version] of Object.entries(toyPackageJson.dependencies)) {
+    await installPackage(packageName, version);
+    console.log(`Installed ${packageName}@${version}`);
+  }
+
+  for (const [packageName, version] of Object.entries(toyPackageJson.devDependencies)) {
+    await installPackage(packageName, version, true);
+    console.log(`Installed ${packageName}@${version} as devDependency`);
+  }
+}
+
 
 async function installPackage(packageName, version, isDevDependency = false) {
   const packagePath = path.join(__dirname, "toy_node_modules", packageName);
@@ -126,6 +148,11 @@ async function main() {
   let version;
   let saveOption;
   let isDevDependency = false;
+
+  if (!action) {
+    await installFromToyPackageJson();
+    return;
+  }
 
   restArgs.forEach((arg) => {
     if (arg.startsWith("--save")) {

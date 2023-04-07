@@ -8,3 +8,9 @@ By default it will save into dependencies section.  Use the --save-dev flag to s
 ```js
 node tiny-npm.js <install/uninstall> <package-name> [version]  [--save-dev]
 ```
+
+## To install the package from json
+
+```
+node tiny-npm.js
+```
