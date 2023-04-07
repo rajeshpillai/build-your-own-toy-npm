@@ -36,8 +36,8 @@ async function downloadPackage(packageName, version) {
   return data;
 }
 
-// Install from toy-package.json
-async function installFromToyPackageJsonSingle() {
+// Uninstall all packages
+async function uninstallAllPackages() {
   const toyPackagePath = path.join(__dirname, "toy-package.json");
 
   if (!fs.existsSync(toyPackagePath)) {
@@ -47,16 +47,17 @@ async function installFromToyPackageJsonSingle() {
 
   const toyPackageJson = JSON.parse(fs.readFileSync(toyPackagePath, "utf8"));
 
-  for (const [packageName, version] of Object.entries(toyPackageJson.dependencies)) {
-    await installPackage(packageName, version);
-    console.log(`Installed ${packageName}@${version}`);
-  }
+  const uninstallDependenciesPromises = Object.keys(toyPackageJson.dependencies).map(async (packageName) => {
+    await uninstallPackage(packageName);
+  });
 
-  for (const [packageName, version] of Object.entries(toyPackageJson.devDependencies)) {
-    await installPackage(packageName, version, true);
-    console.log(`Installed ${packageName}@${version} as devDependency`);
-  }
+  const uninstallDevDependenciesPromises = Object.keys(toyPackageJson.devDependencies).map(async (packageName) => {
+    await uninstallPackage(packageName, true);
+  });
+
+  await Promise.all([...uninstallDependenciesPromises, ...uninstallDevDependenciesPromises]);
 }
+
 
 // Dynamic rate limit for concurrency
 async function installFromToyPackageJson() {
@@ -245,9 +246,14 @@ async function main() {
       await installPackage(packageName, version, isDevDependency);
       console.log(`Installed ${packageName}@${version || "latest"}`);
       break;
-      case "uninstall":
-        uninstallPackage(packageName);
-        break;
+    case "uninstall":
+      if (packageName) {
+        const isDevDependency = restArgs.includes("--dev") || restArgs.includes("--save-dev");
+        await uninstallPackage(packageName, isDevDependency);
+      } else {
+        await uninstallAllPackages();
+      }
+      break;
       default:
         console.error("Invalid action. Use 'install' or 'uninstall'.");
   }
