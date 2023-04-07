@@ -30,7 +30,7 @@ async function downloadPackage(packageName, version) {
 }
 
 // Install from toy-package.json
-async function installFromToyPackageJson() {
+async function installFromToyPackageJsonSingle() {
   const toyPackagePath = path.join(__dirname, "toy-package.json");
 
   if (!fs.existsSync(toyPackagePath)) {
@@ -50,6 +50,35 @@ async function installFromToyPackageJson() {
     console.log(`Installed ${packageName}@${version} as devDependency`);
   }
 }
+
+// Concurrent
+async function installFromToyPackageJson() {
+  const toyPackagePath = path.join(__dirname, "toy-package.json");
+
+  if (!fs.existsSync(toyPackagePath)) {
+    console.log("toy-package.json not found.");
+    return;
+  }
+
+  const toyPackageJson = JSON.parse(fs.readFileSync(toyPackagePath, "utf8"));
+
+  const installDependenciesPromises = Object.entries(toyPackageJson.dependencies).map(
+    async ([packageName, version]) => {
+      await installPackage(packageName, version);
+      console.log(`Installed ${packageName}@${version}`);
+    }
+  );
+
+  const installDevDependenciesPromises = Object.entries(toyPackageJson.devDependencies).map(
+    async ([packageName, version]) => {
+      await installPackage(packageName, version, true);
+      console.log(`Installed ${packageName}@${version} as devDependency`);
+    }
+  );
+
+  await Promise.all([...installDependenciesPromises, ...installDevDependenciesPromises]);
+}
+
 
 
 async function installPackage(packageName, version, isDevDependency = false) {
