@@ -1,6 +1,8 @@
 # Tiny npm (toy npm)
 A learning project to explore how npm works
 
+This is for the refactor branch. The aim is make the commands in line with npm commands for compatibility.
+
 
 # Usage
 By default it will save into dependencies section.  Use the --save-dev flag to save the package in the dev dependencies.
