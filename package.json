@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "doc": "jsdoc ./toy-npm.js -d ./docs"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +14,8 @@
     "axios": "^1.3.5",
     "p-limit": "^4.0.0",
     "tar": "^6.1.13"
+  },
+  "devDependencies": {
+    "jsdoc": "^4.0.2"
   }
 }
